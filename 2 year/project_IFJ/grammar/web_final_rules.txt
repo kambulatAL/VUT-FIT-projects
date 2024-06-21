@@ -1,0 +1,52 @@
+// for web:
+// https://www.cs.princeton.edu/courses/archive/spring20/cos320/LL1/
+
+prog ::= '?php' 'declare(strict_types=1)' code_lines optional_ending ;
+optional_ending ::= ''
+optional_ending ::= '?'
+code_lines ::= code_line code_lines
+code_lines ::= ''
+code_line ::= statement
+code_line ::= function_definition
+function_definition ::= function_header '{' statements '}'
+function_header ::= 'function' function_identifier '(' function_params ')' optional_result_type
+optional_result_type ::= ''
+optional_result_type ::= ':' type
+function_params ::= ''
+function_params ::= function_param function_n_param
+function_n_param ::= ''
+function_n_param ::= ',' function_param function_n_param
+function_param ::= type variable_identifier
+function_call ::= function_identifier '(' variable_func_identifiers ')'
+variable_func_identifiers ::= ''
+variable_func_identifiers ::= variable_func_identifier  variable_n_identifier
+variable_n_identifier ::= ''
+variable_n_identifier ::= ',' variable_func_identifier  variable_n_identifier
+variable_func_identifier ::= expression
+variable_func_identifier ::= variable_identifier
+statements ::= ''
+statements ::= statement statements
+statement ::= strict_statement ';'
+statement ::= optional_statement
+strict_statement ::= identifier_assignment
+strict_statement ::= expression
+strict_statement ::= return
+optional_statement ::= condition
+optional_statement ::= while
+while ::= 'while' '(' expression ')' '{' statements '}'
+condition ::= 'if' '(' expression ')' '{'  statements '}' condition_else
+condition_else ::= ''
+condition_else ::= 'else' '{' statements '}'
+identifier_assignment ::= variable_identifier assignment
+assignment ::= '=' expression
+return ::= 'return' expression
+expression ::= function_call
+|__ expression ::= string_literal
+type ::= '?int' 
+type ::= '?bool’ 
+type ::= '?string' 
+type ::= '?float'
+type ::= 'int' 
+type ::= 'bool’ 
+type ::= 'string' 
+type ::= 'float'

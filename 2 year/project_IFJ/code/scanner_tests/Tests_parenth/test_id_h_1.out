@@ -1,0 +1,12 @@
+Token(Type:1, Attribute:$vyraz)
+Token(Type:7, Attribute:=)
+Token(Type:10, Attribute:()
+Token(Type:6, Attribute:6)
+Token(Type:7, Attribute:-)
+Token(Type:6, Attribute:5)
+Token(Type:11, Attribute:))
+Token(Type:13, Attribute:;)
+Token(Type:1, Attribute:$per)
+Token(Type:7, Attribute:=)
+Token(Type:6, Attribute:4)
+92SCANNER ERROR

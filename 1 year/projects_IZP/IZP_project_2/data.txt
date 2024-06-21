@@ -1,0 +1,20 @@
+U Apple Lemon Orange Banana Peach
+S Apple Lemon Orange
+S Apple
+S Lemon Orange Banana
+R (Apple Lemon) (Lemon Lemon) (Orange Apple)
+C subseteq 3 2
+C minus 1 4
+C empty 4
+C complement 3
+C equals 2 4
+C card 4
+C subset 4 1
+C intersect 2 3
+C union 2 4
+C reflexive 5
+C symmetric 5
+C antisymmetric 5
+C function 5
+C domain 5
+C codomain 5

@@ -1,0 +1,3 @@
+1. Stáhněte si a nainstalujte Android Studio: https://developer.android.com/studio 
+2. V aplikaci Android Studio vyberte Nastavení/Předvolby -> Zásuvné moduly, vyhledejte na Marketplace položku Kotlin Multiplatform Mobile a nainstalujte ji.
+3. Otevřete projekt s názvem "src" pomocí aplikace Android Studio, proveďte sestavení pomocí klávesové zkratky Shift+F9 a poté spusťte program pomocí emulátoru Android.

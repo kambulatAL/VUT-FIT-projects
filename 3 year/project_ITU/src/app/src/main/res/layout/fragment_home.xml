@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".fragments.HomeFragment"
+    android:id="@+id/home_containter_fragment">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+
+        <TextView
+            android:id="@+id/titleTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginStart="16sp"
+            android:layout_marginTop="16sp"
+            android:layout_marginEnd="16sp"
+            android:layout_marginBottom="16sp"
+            android:background="@color/white"
+            android:drawableStart="@drawable/baseline_account_balance_wallet_24"
+            android:drawablePadding="12sp"
+            android:text="@string/app_name"
+            android:textColor="@color/black"
+            android:textSize="25sp" />
+
+        <TextView
+            android:id="@+id/textBalance"
+            android:layout_width="wrap_content"
+            android:layout_height="48sp"
+            android:ems="7"
+            android:background="@drawable/rectangle_round"
+            android:text="@string/balance_text"
+            android:gravity="center"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="85sp"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+
+            android:clickable="true"
+            />
+
+        <TextView
+            android:id="@+id/textThisMonth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="8"
+            android:text="@string/this_month"
+            android:gravity="left"
+            android:layout_marginTop="164sp"
+            android:layout_marginStart="21sp"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+
+            />
+
+        <TextView
+            android:id="@+id/textExpence"
+            android:layout_width="wrap_content"
+            android:layout_height="48sp"
+            android:ems="8"
+
+            android:background="@drawable/rectangle_round"
+            android:drawableStart="@drawable/baseline_arrow_circle_up_24"
+            android:drawablePadding="10sp"
+            android:layout_alignParentLeft="true"
+
+            android:text="@string/expense"
+            android:padding="10sp"
+
+            android:layout_marginTop="210sp"
+            android:layout_marginStart="21sp"
+            android:textColor="@color/black"
+            android:textSize="17sp"
+
+            android:clickable="true"
+            />
+
+        <TextView
+            android:id="@+id/textIncome"
+            android:layout_width="wrap_content"
+            android:layout_height="48sp"
+            android:ems="8"
+
+            android:background="@drawable/rectangle_round"
+            android:drawableStart="@drawable/baseline_arrow_circle_down_24"
+            android:drawablePadding="10sp"
+            android:layout_alignParentRight="true"
+
+            android:text="@string/income"
+            android:padding="10sp"
+
+            android:layout_marginTop="210sp"
+            android:layout_marginRight="21sp"
+            android:textColor="@color/black"
+            android:textSize="17sp"
+
+            android:clickable="true"
+            />
+
+        <TextView
+            android:id="@+id/textlastTransaction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="8"
+            android:text="@string/last_transactions"
+            android:gravity="left"
+            android:layout_marginTop="290sp"
+            android:layout_marginStart="21sp"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+            />
+
+        <TextView
+            android:id="@+id/textSeeAll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="3"
+            android:text="@string/see_all"
+
+            android:layout_alignParentRight="true"
+            android:gravity="right"
+
+            android:layout_marginTop="290sp"
+            android:layout_marginRight="21sp"
+            android:textColor="@color/blue"
+            android:textSize="20sp"
+
+            android:clickable="true"
+
+            />
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:layout_below="@+id/textlastTransaction"
+            android:id="@+id/swipeRefreshLayout"
+            android:layout_width="380dp"
+            android:layout_height="332dp">
+        <LinearLayout
+            android:id="@+id/LastTransContainer"
+            android:layout_width="380dp"
+            android:layout_height="332dp"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@+id/textlastTransaction"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical" >
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_centerHorizontal="true"
+                android:orientation="vertical" />
+        </LinearLayout>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    </RelativeLayout>
+
+
+</FrameLayout>

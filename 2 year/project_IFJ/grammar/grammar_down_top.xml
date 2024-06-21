@@ -1,0 +1,31 @@
+<!--
+***************************************************************
+*                         IFJ22                               *
+***************************************************************
+* @file grammar_downtop.xml
+* @author Kambulat Alakaev (xalaka00@stud.fit.vutbr.cz)
+-->
+
+<!-- i is a terminal(variable, number, string, function call) -->
+
+<expr> 		-> ( <expr> )
+<expr> 		-> i
+
+<!--Arithmetic operations-->
+<expr>     -> <expr> + <expr>
+<expr>     -> <expr> - <expr>
+<expr>     -> <expr> * <expr>
+<expr>     -> <expr> / <expr>
+
+
+<!--Logical operations-->
+<expr>     -> <expr> < <expr>
+<expr>     -> <expr> > <expr>
+<expr>     -> <expr> <=  <expr>
+<expr>     -> <expr> >= <expr>
+<expr>     -> <expr> === <expr>
+<expr>     -> <expr> !== <expr>
+
+<!--Concatenation -->
+<expr>     -> <expr> . <expr>
+

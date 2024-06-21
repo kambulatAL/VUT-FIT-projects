@@ -1,0 +1,1243 @@
+#!/bin/bash
+export POSIXLY_CORRECT=yes
+
+
+FILTERS=""
+COMMAND=""
+FILE_NAMES=""
+
+DATE_AFTER=""
+DATE_BEFORE=""
+GENDER=""
+
+IS_S=0
+WIDTH=0
+
+CLEAN_DATA=""
+DIRTY_DATA=""
+
+
+# output hints about the commands
+hints(){
+	echo  	"\n\t\t-----Available Commands-----\n"
+
+	echo  	"infected - count the number of infected people.\n"
+
+	echo	"merge - merge several files into one, with the same order of rows\n"
+
+	echo	"gender — output the number of infected people in according to gender\n"
+
+	echo	"age - output the number of infected people in according to age\n"
+
+	echo 	"monthly - output the number of infected people in according to month\n"
+
+	echo 	"daily - output the number of infected people in according to day\n"
+
+	echo 	"yearly - output the number of infected people in according to year\n"
+
+	echo 	"countries - output the number of infected people in according to country(country code)\n"
+
+	echo 	"districts - output the number of infected people in according to the district\n"
+
+	echo 	"regions - output the number of infected people in according to region\n"
+
+	echo	"\n\t\t-----Available Filters-----\n"
+
+	echo 	"For commands: gender, age, daily, monthly, yearly, countries, districts and regions\n"
+	echo  	"\t-s [WIDTH] -  filter \"-s\" outputs data as a histogram. Optional parameter \"WIDTH\" sets the width of the histogram.\n"
+
+	echo	"Global filters:"
+	echo 	"\t-a DATETIME - only dates after the specified date will be taken into account.\n"
+	echo 	"\t-b DATETIME - only dates before the specified date will be taken into account.\n"
+	echo	"\t-g GENDER - only the specified gender will be taken into account. GENDER can be \"M\" or \"Z\"\n"
+}
+
+# reads all files from the $FILE_NAMES variable
+read_files(){
+	local files=""
+
+	for file in $1; do
+		case $file in
+
+			*.csv.gz)
+				files+=$(gunzip -c $file|cat)
+				;;
+
+			*.csv.bz2)
+				files+=$(bunzip2 -c $file|cat)
+				;;
+
+			*.csv)
+				files+=$(cat $file)
+				;;
+		esac
+	done
+
+	echo "$(echo "$files"|sed '1!{/id,datum,vek,pohlavi,kraj_nuts_kod,okres_lau_kod,nakaza_v_zahranici,nakaza_zeme_csu_kod,reportovano_khs/d;}')"
+}
+
+
+#checks if date is valid
+date_is_correct(){
+	
+	echo "$(echo "$1"|gawk \
+	'
+	BEGIN{FS="-"} 
+	{
+	if (int($2) > 12 || int($2) < 1)
+	{
+		echo "0"
+		exit 1
+	}
+	if ((int($1) % 400 == 0) || (int($1) % 4 ==0 && int($1) % 100 != 0))
+	{
+		
+		if($2=="02")
+        {
+         	if (int($3)>29)
+         	{
+         		print "0"
+         		exit 1
+         	}
+         	else
+         	{
+         		print "1"
+         		exit 0
+         	}
+        }
+        else if($2=="04" || $2=="06" || $2=="09" || $2=="11")
+        {
+        	if(int($3)>30)
+        	{
+        		print "0"
+        		exit 1
+        	}
+        	else
+         	{
+         		print "1"
+         		exit 0
+         	}
+        }
+		else
+        {
+	        if($3>31)
+	        {
+	        	print "0"
+	        	exit 1
+	        }
+	        else
+         	{
+         		print "1"
+         		exit 0
+         	}
+        }
+         
+	}
+	else 
+	{
+		if ($2=="02")
+		{
+			if(int($3)>28)
+			{
+				print "0"
+				exit 1
+			}
+			else
+         	{
+         		print "1"
+         		exit 0
+         	}
+		}
+		else if($2=="04" || $2=="06" || $2=="09" || $2=="11")
+        {
+        	if(int($3)>30)
+        	{
+        		print "0"
+        		exit 1
+        	}
+        	else
+         	{
+         		print "1"
+         		exit 0
+         	}
+        }
+		else 
+        {
+            if(int($3)>31)
+            {
+            	print "0"
+            	exit 1
+            }
+            else
+         	{
+         		print "1"
+         		exit 0
+         	}
+        }
+
+	}
+	}
+	')"
+}
+
+
+#checks data format and if it is valid
+check_date(){
+
+	if [[ $1 =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+		echo "$(date_is_correct "$1")"
+	else
+		echo "0"
+	fi
+	
+}
+
+
+#checks arguments of the options -a and -b
+check_date_option(){
+	local flag=$(check_date $2)
+
+	if [ "$flag" = "1" ]; then
+		if [ "$1" = "-a" ]; then
+			DATE_AFTER="$2"
+		else
+			DATE_BEFORE="$2"
+		fi
+		FILTERS+="$1 "
+	else
+		echo "Option \"$1\" has wrong date argument"
+		exit 1
+	fi
+}
+
+
+get_after_date(){
+	local after="$2"
+
+	echo "$(echo "$1"| awk -v after="$after" '
+	BEGIN{FS=","} 
+	{
+		split(after,after_arr,"-")
+		split($2,date_arr,"-")
+
+		if(int(date_arr[1]) < int(after_arr[1]))
+			next
+		else if(int(date_arr[1]) > int(after_arr[1]))
+			print $0
+		else 
+		{
+			if(int(date_arr[2]) < int(after_arr[2]))
+				next
+			else if(int(date_arr[2]) > int(after_arr[2]))
+				print $0
+			else
+			{
+				if(int(date_arr[3]) >= int(after_arr[3]))
+					print $0
+			}
+		}
+	}')"
+}
+
+
+get_before_date(){
+	local before="$2"
+
+	echo "$(echo "$1"| awk -v before="$before" '
+	BEGIN{FS=","} 
+	{
+		split(before,before_arr,"-")
+		split($2,date_arr,"-")
+
+		if(int(date_arr[1]) < int(before_arr[1]))
+			print $0
+		else if(int(date_arr[1]) > int(before_arr[1]))
+			next
+		else 
+		{
+			if(int(date_arr[2]) < int(before_arr[2]))
+				print $0
+			else if(int(date_arr[2]) > int(before_arr[2]))
+				next
+			else
+			{
+				if(int(date_arr[3]) <= int(before_arr[3]))
+					print $0
+			}
+		}
+	}')"
+}
+
+
+get_gender(){
+
+	echo "$(echo "$1"|awk -v gen="$2" '
+	BEGIN{FS=","}
+	{
+		if ($4==gen) 
+			print $0
+	}')"
+}
+
+
+filter_data(){
+	local data="$1"
+	local filters="$2"
+
+	for i in $filters; do
+		if [ "$i" = '-a' ]; then
+
+			data="$(get_after_date "$data" "$DATE_AFTER")"			
+
+		elif [ "$i" = '-b' ]; then
+
+			data="$(get_before_date "$data" "$DATE_BEFORE")"
+		elif [ "$i" = '-g' ]; then
+			data="$(get_gender "$data" "$GENDER")"
+		fi
+	done
+	echo "$data"
+}
+
+########COMMANDS#########
+gender_infected(){
+	echo "$1"| awk -v c_men=0 -v c_women=0 -v none=0 \
+	'BEGIN{FS=","}
+	 {
+	 	if($4 == "M")
+	 		c_men += 1
+	 	else if($4 == "Z")
+	 		c_women += 1
+	 	else
+	 		none += 1
+	 }
+	 END{
+	 	if(none == 0){
+	 		print "M:",c_men
+	 		print "Z:",c_women
+	 	}
+	 	else{
+	 		print "M:",c_men
+	 		print "Z:",c_women
+	 		print "None:",none
+	 	}
+	 }
+
+	'
+}
+
+age_infected(){
+	echo "$1"| awk -v age_1=0 -v age_2=0 -v age_3=0 -v age_4=0 \
+				-v age_5=0 -v age_6=0 -v age_7=0 -v age_8=0 \
+				-v age_9=0 -v age_10=0 -v age_11=0 -v age_12=0 -v none=0\
+	' 
+	BEGIN{FS=","}
+	{
+		if($3 >= 0 && $3 <= 5)
+			age_1+=1
+		else if($3 >= 6 && $3 <= 15)
+			age_2+=1
+		else if($3 >= 16 && $3 <= 25)
+			age_3+=1
+		else if($3 >= 26 && $3 <= 35)
+			age_4+=1
+		else if($3 >= 36 && $3 <= 45)
+			age_5+=1
+		else if($3 >= 46 && $3 <= 55)
+			age_6+=1
+		else if($3 >= 56 && $3 <= 65)
+			age_7+=1
+		else if($3 >= 66 && $3 <= 75)
+			age_8+=1
+		else if($3 >= 76 && $3 <= 85)
+			age_9+=1
+		else if($3 >= 86 && $3 <= 95)
+			age_10+=1
+		else if($3 >= 96 && $3 <= 105)
+			age_11+=1
+		else if($3 > 105)
+			age_12+=1
+		else
+			none+=1
+	}
+
+	END{
+		if (none == 0){
+			print "0-5   :",age_1
+			print "6-15  :",age_2
+			print "16-25 :",age_3
+			print "26-35 :",age_4
+			print "36-45 :",age_5
+			print "46-55 :",age_6
+			print "56-65 :",age_7
+			print "66-75 :",age_8
+			print "76-85 :",age_9
+			print "86-95 :",age_10
+			print "96-105:",age_11
+			print ">105  :",age_12
+		}
+		else{
+			print "0-5   :",age_1
+			print "6-15  :",age_2
+			print "16-25 :",age_3
+			print "26-35 :",age_4
+			print "36-45 :",age_5
+			print "46-55 :",age_6
+			print "56-65 :",age_7
+			print "66-75 :",age_8
+			print "76-85 :",age_9
+			print "86-95 :",age_10
+			print "96-105:",age_11
+			print ">105  :",age_12
+			print "None  :",none
+		}
+	}
+	'
+	
+}
+
+
+daily_infected(){
+	local d="$(echo "$1"|awk -F "," '{print $2}'|awk -F "-" '{printf("%s-%s-%s\n",$1,$2,$3)}')"
+	local row_count=$(echo "$d"|awk "END{print NR}")
+
+	echo "$d"|sort|uniq -c| awk -F " " -v n_rows=$row_count -v count=0\
+	'
+	{	if($2 != "--"){
+			printf("%s: %d\n",$2,$1)
+			count+=int($1)
+		}
+
+	}
+	END{
+		if(n_rows > count)
+			print "None:", n_rows - count
+	}
+	'
+	
+}
+
+
+monthly_infected(){
+	local d="$(echo "$1"|awk -F "," '{print $2}'|awk -F "-" '{printf("%s-%s\n",$1,$2)}')"
+	local row_count=$(echo "$d"|awk "END{print NR}")
+	echo "$d"|sort|uniq -c|awk -F " " -v n_rows=$row_count -v count=0\
+	'
+	{	if ($2 != "-"){
+			printf("%s: %d\n",$2,$1)
+			count+=int($1)
+		}
+	}
+	END{
+		if(n_rows > count)
+			print "None:", n_rows - count
+	}
+	'
+}
+
+
+yearly_infected(){
+	local d="$(echo "$1"|awk -F "," '{print $2}'|awk -F "-" '
+	{
+		if ($1 != "") 
+			printf("%s\n",$1) 
+		else
+			print "-"
+	}')"
+
+	local row_count=$(echo "$d"|awk "END{print NR}")
+	echo "$d"|sort|uniq -c|awk -F " " -v n_rows=$row_count -v count=0\
+	'
+	{	if ($2 != "-"){
+			printf("%s: %d\n",$2,$1)
+			count+=int($1)
+		}
+	}
+	END{
+		if(n_rows > count)
+			print "None:", n_rows - count
+	}
+	'
+}
+
+
+regions_infected(){
+	local d="$(echo "$1"|awk -F "," '{print $5}'|awk  '
+	{
+		if ($0 != "") 
+			printf("%s\n",$1) 
+		else
+			print "-"
+	}')"
+
+	local row_count=$(echo "$d"|awk "END{print NR}")
+	echo "$d"|sort|uniq -c|awk -F " " -v n_rows=$row_count -v count=0\
+	'
+	{	if ($2 != "-"){
+			printf("%s: %d\n",$2,$1)
+			count+=int($1)
+		}
+	}
+	END{
+		if(n_rows > count)
+			print "None:", n_rows - count
+	}
+	'
+}
+
+
+districts_infected(){
+	local d="$(echo "$1"|awk -F "," '{print $6}'|awk  '
+	{
+		if ($0 != "") 
+			printf("%s\n",$1) 
+		else
+			print "-"
+	}')"
+
+	local row_count=$(echo "$d"|awk "END{print NR}")
+	echo "$d"|sort|uniq -c|awk -F " " -v n_rows=$row_count -v count=0\
+	'
+	{	if ($2 != "-"){
+			printf("%s: %d\n",$2,$1)
+			count+=int($1)
+		}
+	}
+	END{
+		if(n_rows > count)
+			print "None:", n_rows - count
+	}
+	'
+}
+
+
+countries_infected(){
+	local d="$(echo "$1"|awk -F "," '{print $8}'|awk '{printf("%s\n",$1) }')"
+	echo "$d"|sort|uniq -c|awk -F " " '{if($2 != "") printf("%s: %d\n",$2,$1)}'
+}
+
+
+gender_infected_s(){
+	local width=$2
+	gender_infected "$1"|sort  -t" " -k2nr,2| awk -v size=0 -v max=0 -v w=$width \
+	'
+	BEGIN{FS=" "}
+	{	
+		if (w != 0)
+		{
+			if (NR == 1){
+				max=$2
+				$2=sprintf("%-*s",w,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+			}
+			else{
+				size = int((w * $2)/max)
+				$2=sprintf("%-*s",size,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+				
+ 			}
+		}
+		else
+		{
+			size = int($2/100000)
+			$2=sprintf("%-*s",size,"")
+			gsub(" ","#",$2)
+			printf("%-s %s\n", $1,$2)
+
+		}
+	}
+
+	'
+	}
+
+age_infected_s(){
+	local width=$2
+	age_infected "$1" | sort -t":" -k2nr,2 | awk -v size=0 -v max=0 -v w=$width \
+	'
+	BEGIN{FS=": "}
+	{	
+		if (w != 0)
+		{
+			if (NR == 1){
+				max=$2
+				$2=sprintf("%-*s",w,"")
+				gsub(" ","#",$2)
+				printf("%-s : %s\n", $1,$2)
+			}
+			else{
+				size = int((w * $2)/max)
+				$2=sprintf("%-*s",size,"")
+				gsub(" ","#",$2)
+				printf("%-s : %s\n", $1,$2)
+				
+ 			}
+		}
+		else
+		{
+			size = int($2/10000)
+			$2=sprintf("%-*s",size,"")
+			gsub(" ","#",$2)
+			printf("%-s : %s\n", $1,$2)
+
+		}
+	}
+
+	'
+}
+
+
+daily_infected_s(){
+	local width=$2
+	daily_infected "$1" | sort -t" " -k2nr,2 | awk -v size=0 -v max=0 -v w=$width \
+	'
+	BEGIN{FS=" "}
+	{	
+		if (w != 0)
+		{
+			if (NR == 1){
+				max=$2
+				$2=sprintf("%-*s",w,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+			}
+			else{
+				size = int((w * $2)/max)
+				$2=sprintf("%-*s",size,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+				
+ 			}
+		}
+		else
+		{
+			size = int($2/500)
+			$2=sprintf("%-*s",size,"")
+			gsub(" ","#",$2)
+			printf("%-s %s\n", $1,$2)
+
+		}
+	}
+
+	'
+}
+
+monthly_infected_s(){
+	local width=$2
+	monthly_infected "$1" | sort -t" " -k2nr,2 | awk -v size=0 -v max=0 -v w=$width \
+	'
+	BEGIN{FS=" "}
+	{	
+		if (w != 0)
+		{
+			if (NR == 1){
+				max=$2
+				$2=sprintf("%-*s",w,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+			}
+			else{
+				size = int((w * $2)/max)
+				$2=sprintf("%-*s",size,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+				
+ 			}
+		}
+		else
+		{
+			size = int($2/10000)
+			$2=sprintf("%-*s",size,"")
+			gsub(" ","#",$2)
+			printf("%-s %s\n", $1,$2)
+
+		}
+	}
+	'
+}
+
+
+yearly_infected_s(){
+	local width=$2
+	yearly_infected "$1" | sort -t" " -k2nr,2 | awk -v size=0 -v max=0 -v w=$width \
+	'
+	BEGIN{FS=" "}
+	{	
+		if (w != 0)
+		{
+			if (NR == 1){
+				max=$2
+				$2=sprintf("%-*s",w,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+			}
+			else{
+				size = int((w * $2)/max)
+				$2=sprintf("%-*s",size,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+				
+ 			}
+		}
+		else
+		{
+			size = int($2/100000)
+			$2=sprintf("%-*s",size,"")
+			gsub(" ","#",$2)
+			printf("%-s %s\n", $1,$2)
+
+		}
+	}
+	'
+}
+
+regions_infected_s(){
+	local width=$2
+	regions_infected "$1" | sort -t" " -k2nr,2 | awk -v size=0 -v max=0 -v w=$width \
+	'
+	BEGIN{FS=" "}
+	{	
+		if (w != 0)
+		{
+			if (NR == 1){
+				max=$2
+				$2=sprintf("%-*s",w,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+			}
+			else{
+				size = int((w * $2)/max)
+				$2=sprintf("%-*s",size,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+				
+ 			}
+		}
+		else
+		{
+			size = int($2/10000)
+			$2=sprintf("%-*s",size,"")
+			gsub(" ","#",$2)
+			printf("%-s %s\n", $1,$2)
+
+		}
+	}
+	'
+}
+
+districts_infected_s(){
+	local width=$2
+	districts_infected "$1" | sort -t" " -k2nr,2 | awk -v size=0 -v max=0 -v w=$width \
+	'
+	BEGIN{FS=" "}
+	{	
+		if (w != 0)
+		{
+			if (NR == 1){
+				max=$2
+				$2=sprintf("%-*s",w,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+			}
+			else{
+				size = int((w * $2)/max)
+				$2=sprintf("%-*s",size,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+				
+ 			}
+		}
+		else
+		{
+			size = int($2/1000)
+			$2=sprintf("%-*s",size,"")
+			gsub(" ","#",$2)
+			printf("%-s %s\n", $1,$2)
+
+		}
+	}
+	'
+}
+
+countries_infected_s(){
+	local width=$2
+	countries_infected "$1" | sort -t" " -k2nr,2 | awk -v size=0 -v max=0 -v w=$width \
+	'
+	BEGIN{FS=" "}
+	{	
+		if (w != 0)
+		{
+			if (NR == 1){
+				max=$2
+				$2=sprintf("%-*s",w,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+			}
+			else{
+				size = int((w * $2)/max)
+				$2=sprintf("%-*s",size,"")
+				gsub(" ","#",$2)
+				printf("%-s %s\n", $1,$2)
+				
+ 			}
+		}
+		else
+		{
+			size = int($2/100)
+			$2=sprintf("%-*s",size,"")
+			gsub(" ","#",$2)
+			printf("%-s %s\n", $1,$2)
+
+		}
+	}
+	'
+}
+
+
+is_dirty_data(){
+	echo "$1" | awk '{
+		if (NR>1)
+			print $0
+	}'
+}
+
+
+while getopts ":a:b:g:sh" opt; 
+do
+	case $opt in 
+		h) hints
+			exit 0
+			;;	
+
+		a)	check_date_option "-a" "$OPTARG"
+			shift
+			OPTIND=$((OPTIND-1))
+			shift
+			OPTIND=$((OPTIND-1))
+			;;
+
+		b)	check_date_option "-b" "$OPTARG"
+			shift
+			OPTIND=$((OPTIND-1))
+			shift
+			OPTIND=$((OPTIND-1))
+			;;
+
+		s)	shift
+			OPTIND=$((OPTIND-1))
+			case $1 in
+              *[!0-9]* | "");;
+              *) WIDTH=$1;  shift ;;
+            esac
+            IS_S=1
+			FILTERS+="-s "
+			;;
+
+		g)	GENDER="$OPTARG"
+			if [ $GENDER != "M" ] && [ $GENDER != "Z" ]; then
+				echo "ERROR: invalid argument for -g option">&2
+				exit 1
+			fi
+			FILTERS+="-g "
+			shift
+			OPTIND=$((OPTIND-1))
+			shift
+			OPTIND=$((OPTIND-1))
+			;;
+
+		\?) echo "ERROR: Invalid option: -$OPTARG">&2
+			exit 1
+			;;
+
+		:)	echo "ERROR: Option -$OPTARG requires an arugment.">&2
+			exit 1
+			;;
+	esac
+				
+done 
+
+
+# while [ $OPTIND -gt 1 ]; do
+# 	shift
+# 	OPTIND=$((OPTIND-1))
+# done
+
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+
+		infected|gender|age|daily|monthly|yearly|countries|districts|regions|merge)
+			COMMAND+="$1"
+			if [ ${#COMMAND} -gt 9 ] ; then
+				echo "ERROR: Too many commands">&2
+				exit 1;
+			fi
+			shift
+			;;
+
+		*.csv|*.csv.gz|*.csv.bz2)
+			if [ -z "$COMMAND" ] && [ -z "$FILTERS" ]; then
+				echo "ERROR: Ivalid command: $1">&2
+				exit 1
+
+			elif [ ! -f $1 ]; then
+				echo "ERROR: File $1 cant be found">&2
+				exit 1
+			fi
+			FILE_NAMES+="${1} "
+			shift
+			;;
+
+		*) 	echo "ERROR: Ivalid command: $1">&2
+			exit 1
+			;;
+	esac
+done
+
+
+if [ -z "$COMMAND" ] && [ -z "$FILTERS" ]; then
+	echo "$(cat<&0)"
+	exit 0
+fi
+
+
+if [ -z "$FILE_NAMES" ]; then
+	ALL_DATA="$(cat<&0)"
+else
+	ALL_DATA="$(read_files "$FILE_NAMES")"
+fi
+
+
+if [ -n "$FILTERS" ] || [ -n "$COMMAND" ]; then
+	DIRTY_DATA="$(echo "$ALL_DATA"| awk -v flag="0" \
+	'
+	BEGIN{FS=","} 
+		function check_d(year,month,day)
+		{
+			if (int(month) > 12 || int(month) < 1){
+				return 0
+			}
+			if ((int(year) % 400 == 0) || (int(year) % 4 ==0 && int(year) % 100 != 0))
+			{	
+				if(month=="02")
+		        {
+		         	if (int(day)>29){
+			  			return 0
+		         	}
+		         	else{
+			  			return 1
+		         	}
+		        }
+		        else if(month=="04" || month=="06" || month=="09" || month=="11")
+		        {
+		        	if(int(day)>30){
+		        		return 0
+		        	}
+		        	else{
+						return 1
+		        	}
+		        }
+				else
+		        {
+			        if(int(day)>31){
+						return 0
+			        }
+			        else{
+			  			return 1
+			        }
+		        }    
+			}
+			else 
+			{
+				if (month=="02")
+				{
+					if(int(day)>28){
+						return 0
+					}
+					else{
+		         		return 1
+					}
+				}
+				else if(month=="04" || month=="06" || month=="09" || month=="11")
+		        {
+		        	if(int(day)>30){
+			   			return 0
+		        	}
+		        	else{
+		 				return 1       	
+		        	}
+		        }
+				else 
+		        {
+		            if(int(day)>31){      
+		   				return 0  
+		   			}       
+		            else{         	
+		         		return 1
+		         	}      	
+		        }
+			}
+		}
+
+	{ 	if(NR>1)
+		{	gsub(" ","",$2)
+			if ($2 !="")
+			{
+				if($2 !~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/){
+					print "Invalid date:",$0
+					next
+				}
+				split($2,a,"-") 
+				flag = check_d(a[1],a[2],a[3])
+
+				if(flag == 0){
+					print "Invalid date:",$0
+					next	
+				}
+			}
+
+			if($3 !="")
+			{
+				if (int($3) > 160 || int($3) < 0 || int($3) != $3){
+					print "Invalid age:",$0
+					next
+				}
+			}
+	
+		} 
+		else
+			print $0
+	}
+	')"
+
+
+	CLEAN_DATA="$(echo "$ALL_DATA"| awk -v flag="0" '
+	BEGIN{FS=","} 
+		function check_d(year,month,day)
+		{
+			if (int(month) > 12 || int(month) < 1){
+				return 0
+			}
+			if ((int(year) % 400 == 0) || (int(year) % 4 ==0 && int(year) % 100 != 0))
+			{	
+				if(month=="02")
+		        {
+		         	if (int(day)>29){
+			  			return 0
+		         	}
+		         	else{
+			  			return 1
+		         	}
+		        }
+		        else if(month=="04" || month=="06" || month=="09" || month=="11")
+		        {
+		        	if(int(day)>30){
+		        		return 0
+		        	}
+		        	else{
+						return 1
+		        	}
+		        }
+				else
+		        {
+			        if(int(day)>31){
+						return 0
+			        }
+			        else{
+			  			return 1
+			        }
+		        }    
+			}
+			else 
+			{
+				if (month=="02")
+				{
+					if(int(day)>28){
+						return 0
+					}
+					else{
+		         		return 1
+					}
+				}
+				else if(month=="04" || month=="06" || month=="09" || month=="11")
+		        {
+		        	if(int(day)>30){
+			   			return 0
+		        	}
+		        	else{
+		 				return 1       	
+		        	}
+		        }
+				else 
+		        {
+		            if(int(day)>31){      
+		   				return 0  
+		   			}       
+		            else{         	
+		         		return 1
+		         	}      	
+		        }
+			}
+		}
+
+	{ 	if(NR>1)
+		{
+			if($2 != "")
+			{	
+				if($2 !~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)
+					next
+
+				split($2,a,"-") 
+				flag = check_d(a[1],a[2],a[3])
+
+				if (flag == 1){
+					print $0
+					next
+				}
+			}else if ($1 != ""){
+				print $0
+				next
+			}
+
+			if($3 != "")
+			{
+				if(int($3) >= 0 && int($3) < 160 && int($3) != $3)
+					print $0
+			}else if ($1 != "") {
+				print $0
+			}
+		}
+	}
+	')"
+
+	CLEAN_DATA="$(filter_data "$CLEAN_DATA" "$FILTERS")"
+
+else
+	CLEAN_DATA="$ALL_DATA"
+fi
+
+
+if [ -n "$FILTERS" ] && [ -z "$COMMAND" ]; then
+	echo "$DIRTY_DATA"
+
+	if [ -z "$CLEAN_DATA" ]; then
+		exit 0
+	fi
+
+	echo "$CLEAN_DATA"
+	exit 0
+fi
+
+
+DIRTY="$(is_dirty_data "$DIRTY_DATA")"
+
+
+if [ -n "$COMMAND" ]; then
+
+	if [ "$COMMAND" = "infected" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+		
+		if [ -z "$CLEAN_DATA" ]; then
+			echo "0"
+		else
+			echo "$CLEAN_DATA" | awk 'END{print NR}'
+		fi
+
+	elif [ "$COMMAND" = "merge" ]; then
+		echo "$ALL_DATA"
+		
+
+	elif [ "$COMMAND" = "gender" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+
+		if [ $IS_S -eq 1 ]; then
+			gender_infected_s "$CLEAN_DATA" "$WIDTH"
+		else
+			gender_infected "$CLEAN_DATA" 
+		fi
+
+	elif [ "$COMMAND" = "age" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+
+		if [ $IS_S -eq 1 ]; then
+			age_infected_s "$CLEAN_DATA" "$WIDTH"
+		else
+			age_infected "$CLEAN_DATA"
+		fi
+
+	elif [ "$COMMAND" = "daily" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+
+		if [ $IS_S -eq 1 ]; then
+			daily_infected_s "$CLEAN_DATA" "$WIDTH"
+		else
+			daily_infected "$CLEAN_DATA"
+		fi
+	
+	elif [ "$COMMAND" = "monthly" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+
+		if [ $IS_S -eq 1 ]; then
+			monthly_infected_s "$CLEAN_DATA" "$WIDTH"
+		else
+			monthly_infected "$CLEAN_DATA"
+		fi
+
+	elif [ "$COMMAND" = "yearly" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+
+		if [ $IS_S -eq 1 ]; then
+			yearly_infected_s "$CLEAN_DATA" "$WIDTH"
+		else
+			yearly_infected "$CLEAN_DATA"
+		fi
+
+	elif [ "$COMMAND" = "regions" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+
+		if [ $IS_S -eq 1 ]; then
+			regions_infected_s "$CLEAN_DATA" "$WIDTH"
+		else
+			regions_infected "$CLEAN_DATA"
+		fi
+
+	elif [ "$COMMAND" = "districts" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+
+		if [ $IS_S -eq 1 ]; then
+			districts_infected_s "$CLEAN_DATA" "$WIDTH"
+		else
+			districts_infected "$CLEAN_DATA"
+		fi
+			
+
+	elif [ "$COMMAND" = "countries" ]; then
+		if [ -n "$DIRTY" ]; then
+			echo "$DIRTY"
+		fi
+
+		if [ $IS_S -eq 1 ]; then
+			countries_infected_s "$CLEAN_DATA" "$WIDTH"
+		else
+			countries_infected "$CLEAN_DATA"
+		fi	
+	fi
+fi
+
+

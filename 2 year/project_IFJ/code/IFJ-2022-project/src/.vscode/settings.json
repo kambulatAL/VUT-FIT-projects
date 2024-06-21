@@ -1,0 +1,8 @@
+{
+    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
+    "files.associations": {
+        "symstack.h": "c",
+        "parser.h": "c",
+        "expressions.h": "c"
+    }
+}

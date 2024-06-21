@@ -1,1 +1,1 @@
-# VUT-FIT-projects
+# There are some of my VUT FIT school projects
