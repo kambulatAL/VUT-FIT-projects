@@ -14,6 +14,7 @@ Year|Subject | Points | Description
 2 | INP | 10/10 | Vernam cipher on MIPS64 architecture.
 2 | IDS | 39/39 | Semester project on databases:  Data model (ERD), Use Case Model, SQL(Oracle SQL) script to create database schema objects and make some operations(select, insert, delete, join,...) with data.
 2 | IPK no.2 | 11/20 | Network packet sniffer in C.
+2 | IJA | 100/100 | Semester project: Pac-Man game with a graphical interface in Java.
 3 | IIS | 25/30 | information system of events and entertainment in the city with the implementation of a personal profile and admin panel (admin panel is implemented without using the built-in panel in the Django framework). The project is written in Python + Django, Jinja2 and PostgreSQL to implement the database (https://github.com/kambulatAL/iis-project.git)
 3 | IMP | 14/14 | The goal of the project was to measure the light level falling on a light sensor and adjust the LED diode's light level accordingly. The application should be user configurable (e.g. via serial communication), the value should be sent to the internet via MQTT. Project was written in C + PlatformIO for the ESP32 desk.
 3 | IMS | 20/20 | Simulation study for the IMS project: A boat trip from Southampton to the Mediterranean.
