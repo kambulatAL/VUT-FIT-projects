@@ -18,3 +18,4 @@ Year|Subject | Points | Description
 3 | IMP | 14/14 | The goal of the project was to measure the light level falling on a light sensor and adjust the LED diode's light level accordingly. The application should be user configurable (e.g. via serial communication), the value should be sent to the internet via MQTT. Project was written in C + PlatformIO for the ESP32 desk.
 3 | IMS | 20/20 | Simulation study for the IMS project: A boat trip from Southampton to the Mediterranean.
 3 | ITU | 42/55 | Mobile application to track and manage personal finances. Project was written in Kotlin.
+3 | IZV | 86/100 | Semester project: Data vizualizations and data analysis of meteorological and car accidents data on the territory of the Czech Republic.
