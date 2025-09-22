@@ -1,4 +1,4 @@
-# There are some of my VUT FIT school projects
+# There are some of my VUT FIT university projects
 
 List of the projects:
 
